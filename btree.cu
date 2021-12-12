@@ -8,6 +8,8 @@
 using namespace std;
 
 
+const int n = 100000;
+
 class TreeNode {
     int* keys;
     int t;
@@ -42,7 +44,7 @@ public:
             root->traverse();
     }
 
-    TreeNode* search(int k) {
+    __host__ __device__ TreeNode* search(int k) {
         return (root == NULL) ? NULL : root->search(k);
     }
 
@@ -71,7 +73,7 @@ void TreeNode::traverse() {
         C[i]->traverse();
 }
 
-TreeNode* TreeNode::search(int k) {
+__host__ __device__ TreeNode* TreeNode::search(int k) {
     int i = 0;
     while (i < n && k > keys[i])
         i++;
@@ -162,26 +164,27 @@ void TreeNode::splitChild(int i, TreeNode* y) {
     n = n + 1;
 }
 
-__global__ void gpu_search(BTree t, int* k) {
+__global__ void gpu_search(BTree t, int k, TreeNode* res) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    
+    if (i < n) {
+        res = t.search(k);
+    }
 }
-
 
 int main() {
     BTree t(10);
-    int n = 100000;
     int* d_k;
+    int k = 10;
 
     for (int i = 0; i < n; i++) {
-        t.insert(i*3);
+        t.insert(i * 3);
     }
 
     cout << "The B-tree is: ";
     t.traverse();
 
+
     long starttime = clock();
-    int k = 10;
     (t.search(k) != NULL) ? cout << endl
         << k << " was found"
         : cout << endl
@@ -197,18 +200,28 @@ int main() {
         << k << " was not found";
     long endtime2 = clock();
     cout << " in " << (endtime2 - starttime2) << " millis\n" << endl;
-
-
-    long starttime3 = clock();
+ 
+    TreeNode res();
     BTree* pT;
+    TreeNode* d_res;
     cudaMallocManaged(&pT, sizeof(BTree));
+    cudaMallocManaged(&d_res, sizeof(TreeNode));
+    *pT = t;
     cudaMalloc(&d_k, sizeof(int));
     cudaMemcpy(d_k, &k, sizeof(int), cudaMemcpyHostToDevice);
-    *pT = t;
-    gpu_search << <n / 320, 320 >> > (pT, k);
+    long starttime3 = clock();
+    gpu_search << <n / 320, 320 >> > (t, k, d_res);
     long endtime3 = clock();
-    cout << " CUDA run in " << (endtime2 - starttime2) << " millis\n" << endl;
+    cudaMemcpy(&res, d_res, sizeof(TreeNode), cudaMemcpyDeviceToHost);
+    res ? cout << endl
+        << k << " was found"
+        : cout << endl
+        << k << " was not found";
+    cudaDeviceSynchronize();
+    cout << " CUDA run in " << (endtime3 -  starttime3) << " millis\n" << endl;
 
     cudaDeviceSynchronize();
     cudaFree(pT);
+    cudaFree(d_k);
 }
+
