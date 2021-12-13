@@ -5,6 +5,7 @@
 #include "globals.h"
 #include "utils.cuh"
 #include "kernels.cuh"
+#include "cpu_tree.h"
 using namespace std;
 
 
@@ -13,13 +14,13 @@ int main(void) {
   cout << "Starting program...\n";
 
   // number of values in dataset
-  uint32_t VALUES = 1000*1000*1000;
+  uint32_t VALUES = 1500*1000*1000;
 
   // width of b-tree
   uint32_t K = 10;
 
   // number of queries
-  uint32_t BLOCKS = 1000;
+  uint32_t BLOCKS = 10*1000;
   uint32_t THREADS = 1000;
   uint32_t NUM_Q = BLOCKS*THREADS;
 
@@ -33,6 +34,7 @@ int main(void) {
   std::vector<uint32_t> values;
   std::vector<uint32_t> queries;
   std::vector<uint32_t> answers;
+  std::vector<uint32_t> cpu_answers;
 
   // memory for tree
   keys.reserve(num_nodes + VALUES);
@@ -41,11 +43,12 @@ int main(void) {
   // array of queries and answers
   queries.reserve(NUM_Q);
   answers.reserve(NUM_Q);
+  cpu_answers.reserve(NUM_Q);
 
   // randomly select keys for queries
   srand(time(0));
   for (uint32_t i=0; i<NUM_Q; i++){
-    queries.push_back(rand()%VALUES);
+    queries.push_back(rand()%(VALUES-1));
   }
 
 
@@ -107,14 +110,23 @@ int main(void) {
   cout << "answer " << answers[0] << endl;
 
   // CPU solution
+
+  timer.timerStart();
   for (uint32_t i=0;i<NUM_Q;i++){
-    
+    cpu_search_tree(keys, values, queries, cpu_answers, num_nodes, K, i);
   }
+  timer.timerStop();
+  cout << "CPU || time for " << NUM_Q << " queries "<< timer.getMsElapsed() << endl;
 
   // check answers are correct
   for (uint32_t i=0;i<NUM_Q; i++){
     assert(answers[i] == values[num_nodes+queries[i]]);
   }
+  cout << "GPU responses validated.\n";
+  for (uint32_t i=0;i<NUM_Q; i++){
+    assert(cpu_answers[i] == values[num_nodes+queries[i]]);
+  }
+  cout << "CPU responses validated.\n";
 
   return 0;
 }
