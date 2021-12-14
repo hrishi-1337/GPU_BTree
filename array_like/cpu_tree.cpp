@@ -7,7 +7,6 @@ void cpu_search_tree(vector<uint32_t> &keys, vector<uint32_t> &values, vector<ui
   uint32_t iter = 0;
   while (1){
     for (uint32_t i = 0; i<K;i++){
-      // printf("THREAD %u  || iter %u i %u value-ptr %u key % u\n", idx, iter, i, values[iter+i], keys[iter+i]);
       if (keys[iter+i] > keys[iter+1+i]){
         iter = values[iter+i];
         break;

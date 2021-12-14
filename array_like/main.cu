@@ -10,20 +10,26 @@ using namespace std;
 
 
 
-int main(void) {
-  cout << "Starting program...\n";
-
-  // number of values in dataset
-  uint32_t VALUES = 1500*1000*1000;
-
-  // width of b-tree
-  uint32_t K = 10;
-
-  // number of queries
-  uint32_t BLOCKS = 10*1000;
-  uint32_t THREADS = 1000;
-  uint32_t NUM_Q = BLOCKS*THREADS;
-
+int main(int argc, char** argv) {
+  cout << BAR << "Starting program...\n";
+  uint32_t VALUES, K, BLOCKS, THREADS, NUM_Q, managed;
+  if (argc == 1){
+    VALUES = 1500*1000*1000;
+    K = 10;
+    BLOCKS = 20*1000;
+    THREADS = 1000;
+    NUM_Q = BLOCKS*THREADS;
+    managed = 0;
+  } else {
+    VALUES = 2100*1000*1000;
+    K = 10;
+    BLOCKS = 1*1000;
+    THREADS = 1000;
+    NUM_Q = BLOCKS*THREADS;
+    managed = 1;
+  }
+  cout << NUM_Q / 1000000 << " Million Queries\n";
+  cout << float(VALUES) / float(1000000000) << " Billion Elements ~ " << float(VALUES) / float(1000000000)*8<< " Gigabytes\n\n";
   // number of nodes needed to build tree
   uint32_t num_nodes = get_num_nodes(VALUES, K);
 
@@ -51,7 +57,7 @@ int main(void) {
     queries.push_back(rand()%(VALUES-1));
   }
 
-
+  cout << "Randomly setting values...\n";
   // set keys in order and values randomly
   // - values simulate pointers to disc
   srand(time(0));
@@ -65,16 +71,15 @@ int main(void) {
     }
   }
 
-  cout << "query " << queries[0] << " answer " << values[num_nodes+queries[0]]<<endl;
-  cout << "query " << queries[1] << " answer " << values[num_nodes+queries[1]]<<endl;
 
+  cout << "building tree..\n\n";
   // build non-leaf data structure
   get_upper_keys(keys, values, VALUES, K);
 
   // *** view tree ***
   // printtree(keys, K, VALUES);
   // printtree(values, K, VALUES);
-  // // printv(keys);
+  // printv(keys);
   // printv(values);
 
 
@@ -83,40 +88,53 @@ int main(void) {
   VALUES = VALUES + num_nodes;
 
   // alloc and copy; and time it
+  cout << "device alloc and transfer...\n";
   GpuTimer timer;
   timer.timerStart();
-  GPU_CHK(cudaMalloc((void**)&d_keys, sizeof(uint32_t)*VALUES));
-  GPU_CHK(cudaMalloc((void**)&d_values, sizeof(uint32_t)*VALUES));
-  GPU_CHK(cudaMalloc((void**)&d_queries, sizeof(uint32_t)*NUM_Q));
-  GPU_CHK(cudaMalloc((void**)&d_answers, sizeof(uint32_t)*NUM_Q));
-  GPU_CHK(cudaMemcpy(d_keys, keys.data(), sizeof(uint32_t)*VALUES, cudaMemcpyHostToDevice));
-  GPU_CHK(cudaMemcpy(d_values, values.data(), sizeof(uint32_t)*VALUES, cudaMemcpyHostToDevice));
-  GPU_CHK(cudaMemcpy(d_queries, queries.data(), sizeof(uint32_t)*NUM_Q, cudaMemcpyHostToDevice));
-  cudaDeviceSynchronize();
+  if (!managed){
+    GPU_CHK(cudaMalloc((void**)&d_keys, sizeof(uint32_t)*VALUES));
+    GPU_CHK(cudaMalloc((void**)&d_values, sizeof(uint32_t)*VALUES));
+    GPU_CHK(cudaMalloc((void**)&d_queries, sizeof(uint32_t)*NUM_Q));
+    GPU_CHK(cudaMalloc((void**)&d_answers, sizeof(uint32_t)*NUM_Q));
+    GPU_CHK(cudaMemcpy(d_keys, keys.data(), sizeof(uint32_t)*VALUES, cudaMemcpyHostToDevice));
+    GPU_CHK(cudaMemcpy(d_values, values.data(), sizeof(uint32_t)*VALUES, cudaMemcpyHostToDevice));
+    GPU_CHK(cudaMemcpy(d_queries, queries.data(), sizeof(uint32_t)*NUM_Q, cudaMemcpyHostToDevice));
+    cudaDeviceSynchronize();
+  }
+  else {
+    GPU_CHK(cudaMallocManaged((void**)&d_keys, sizeof(uint32_t)*VALUES));
+    GPU_CHK(cudaMallocManaged((void**)&d_values, sizeof(uint32_t)*VALUES));
+    GPU_CHK(cudaMallocManaged((void**)&d_queries, sizeof(uint32_t)*NUM_Q));
+    GPU_CHK(cudaMallocManaged((void**)&d_answers, sizeof(uint32_t)*NUM_Q));
+    GPU_CHK(cudaMemcpy(d_keys, keys.data(), sizeof(uint32_t)*VALUES, cudaMemcpyHostToDevice));
+    GPU_CHK(cudaMemcpy(d_values, values.data(), sizeof(uint32_t)*VALUES, cudaMemcpyHostToDevice));
+    GPU_CHK(cudaMemcpy(d_queries, queries.data(), sizeof(uint32_t)*NUM_Q, cudaMemcpyHostToDevice));
+    cudaDeviceSynchronize();
+  }
   timer.timerStop();
-  cout << "time for device allocation memory transfer " << timer.getMsElapsed() << endl;
+  cout << "time for device allocation memory transfer " << timer.getMsElapsed() << endl<<endl;
 
   // launch kernels; and time it
   timer.timerStart();
+  cout << "GPU || Running Queries...\n";
   search_tree<<<BLOCKS,THREADS>>>(d_keys, d_values, d_queries, d_answers, num_nodes, K);
   cudaDeviceSynchronize();
   timer.timerStop();
-  cout << "time for " << NUM_Q << " queries "<< timer.getMsElapsed() << endl;
+  cout << "GPU || time for " << NUM_Q << " queries "<< timer.getMsElapsed() << endl << endl;
 
   // copy answers back to host
   GPU_CHK(cudaMemcpy(&answers[0], d_answers, sizeof(uint32_t)*NUM_Q, cudaMemcpyDeviceToHost));
 
-  cout << "query " << queries[0] << " answer " << values[num_nodes+queries[0]]<<endl;
-  cout << "answer " << answers[0] << endl;
+
 
   // CPU solution
-
+cout << "CPU || Running Queries...\n";
   timer.timerStart();
   for (uint32_t i=0;i<NUM_Q;i++){
     cpu_search_tree(keys, values, queries, cpu_answers, num_nodes, K, i);
   }
   timer.timerStop();
-  cout << "CPU || time for " << NUM_Q << " queries "<< timer.getMsElapsed() << endl;
+  cout << "CPU || time for " << NUM_Q << " queries "<< timer.getMsElapsed() << endl << endl;
 
   // check answers are correct
   for (uint32_t i=0;i<NUM_Q; i++){
@@ -126,7 +144,7 @@ int main(void) {
   for (uint32_t i=0;i<NUM_Q; i++){
     assert(cpu_answers[i] == values[num_nodes+queries[i]]);
   }
-  cout << "CPU responses validated.\n";
+  cout << "CPU responses validated.\n" << BAR;
 
   return 0;
 }
