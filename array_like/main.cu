@@ -14,10 +14,38 @@ int main(int argc, char** argv) {
   cout << BAR << "Starting program...\n";
   uint32_t VALUES, K, BLOCKS, THREADS, NUM_Q, managed;
   if (argc == 1){
-    VALUES = 1500*1000*1000;
+    VALUES = 1000*1000*1000;
     K = 10;
     BLOCKS = 20*1000;
     THREADS = 1000;
+    NUM_Q = BLOCKS*THREADS;
+    managed = 0;
+  } else if (argv[1][0] == '1'){
+    VALUES = 100*1000*1000;
+    K = 10;
+    BLOCKS = 1000;
+    THREADS = 1000;
+    NUM_Q = BLOCKS*THREADS;
+    managed = 0;
+  }  else if (argv[1][0] == '2'){
+    VALUES = 100*1000*1000;
+    K = 10;
+    BLOCKS = 1;
+    THREADS = 1000;
+    NUM_Q = BLOCKS*THREADS;
+    managed = 0;
+  }  else if (argv[1][0] == '3'){
+    VALUES = 100*1000*1000;
+    K = 10;
+    BLOCKS = 1;
+    THREADS = 100;
+    NUM_Q = BLOCKS*THREADS;
+    managed = 0;
+  }  else if (argv[1][0] == '4'){
+    VALUES = 100*1000*1000;
+    K = 10;
+    BLOCKS = 1;
+    THREADS = 1;
     NUM_Q = BLOCKS*THREADS;
     managed = 0;
   } else {
