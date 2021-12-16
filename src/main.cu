@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
   } else {
     VALUES = 100*1000*1000;
     K = 10;
-    NUM_Q = pow(10, atoi(argv[1]))
+    NUM_Q = pow(10, atoi(argv[1]));
     BLOCKS = max(1,NUM_Q/1000);
     THREADS = NUM_Q/BLOCKS;
     managed = 0;
