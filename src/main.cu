@@ -22,11 +22,11 @@ int main(int argc, char** argv) {
     NUM_Q = BLOCKS*THREADS;
     managed = 0;
   } else {
-    VALUES = pow(10, atoi(argv[1]));
+    VALUES = 100*1000*1000;
     K = 10;
-    BLOCKS = 20*1000;
-    THREADS = 1000;
-    NUM_Q = BLOCKS*THREADS;
+    NUM_Q = pow(10, atoi(argv[1]))
+    BLOCKS = max(1,NUM_Q/1000);
+    THREADS = NUM_Q/BLOCKS;
     managed = 0;
   }
   // } else if (argv[1][0] == '1'){
