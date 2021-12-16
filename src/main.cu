@@ -6,6 +6,7 @@
 #include "utils.cuh"
 #include "kernels.cuh"
 #include "cpu_tree.h"
+#include "math.h"
 using namespace std;
 
 
@@ -20,42 +21,50 @@ int main(int argc, char** argv) {
     THREADS = 1000;
     NUM_Q = BLOCKS*THREADS;
     managed = 0;
-  } else if (argv[1][0] == '1'){
-    VALUES = 100*1000*1000;
-    K = 10;
-    BLOCKS = 1000;
-    THREADS = 1000;
-    NUM_Q = BLOCKS*THREADS;
-    managed = 0;
-  }  else if (argv[1][0] == '2'){
-    VALUES = 100*1000*1000;
-    K = 10;
-    BLOCKS = 1;
-    THREADS = 1000;
-    NUM_Q = BLOCKS*THREADS;
-    managed = 0;
-  }  else if (argv[1][0] == '3'){
-    VALUES = 100*1000*1000;
-    K = 10;
-    BLOCKS = 1;
-    THREADS = 100;
-    NUM_Q = BLOCKS*THREADS;
-    managed = 0;
-  }  else if (argv[1][0] == '4'){
-    VALUES = 100*1000*1000;
-    K = 10;
-    BLOCKS = 1;
-    THREADS = 1;
-    NUM_Q = BLOCKS*THREADS;
-    managed = 0;
   } else {
-    VALUES = 2100*1000*1000;
+    VALUES = pow(10, atoi(argv[1]));
     K = 10;
-    BLOCKS = 1*1000;
+    BLOCKS = 20*1000;
     THREADS = 1000;
     NUM_Q = BLOCKS*THREADS;
-    managed = 1;
+    managed = 0;
   }
+  // } else if (argv[1][0] == '1'){
+  //   VALUES = 100*1000*1000;
+  //   K = 10;
+  //   BLOCKS = 1000;
+  //   THREADS = 1000;
+  //   NUM_Q = BLOCKS*THREADS;
+  //   managed = 0;
+  // }  else if (argv[1][0] == '2'){
+  //   VALUES = 100*1000*1000;
+  //   K = 10;
+  //   BLOCKS = 1;
+  //   THREADS = 1000;
+  //   NUM_Q = BLOCKS*THREADS;
+  //   managed = 0;
+  // }  else if (argv[1][0] == '3'){
+  //   VALUES = 100*1000*1000;
+  //   K = 10;
+  //   BLOCKS = 1;
+  //   THREADS = 100;
+  //   NUM_Q = BLOCKS*THREADS;
+  //   managed = 0;
+  // }  else if (argv[1][0] == '4'){
+  //   VALUES = 100*1000*1000;
+  //   K = 10;
+  //   BLOCKS = 1;
+  //   THREADS = 1;
+  //   NUM_Q = BLOCKS*THREADS;
+  //   managed = 0;
+  // } else {
+  //   VALUES = 2100*1000*1000;
+  //   K = 10;
+  //   BLOCKS = 1*1000;
+  //   THREADS = 1000;
+  //   NUM_Q = BLOCKS*THREADS;
+  //   managed = 1;
+  // }
   cout << NUM_Q / 1000000 << " Million Queries\n";
   cout << float(VALUES) / float(1000000000) << " Billion Elements ~ " << float(VALUES) / float(1000000000)*8<< " Gigabytes\n\n";
   // number of nodes needed to build tree
